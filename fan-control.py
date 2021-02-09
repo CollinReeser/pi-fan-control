@@ -49,21 +49,12 @@ class PollData:
     set_pin: int
 
 vcgm = vcgencmd.Vcgencmd()
-print(vcgm.version())
-
-print("ARM : ", vcgm.measure_clock("arm"))
-print("Core: ", vcgm.measure_clock("core"))
-
-print("Temp: ", vcgm.measure_temp())
 
 time.sleep(5)
 
 def is_boosted():
     arm_clock = vcgm.measure_clock("arm") / 1000000
     core_clock = vcgm.measure_clock("core") / 1000000
-
-    print("    is_boosted: arm_clock: ", arm_clock)
-    print("    is_boosted: core_clock: ", core_clock)
 
     if arm_clock > UNINTERESTING_ARM_CEILING + CLOCK_TOLERANCE:
         return True
@@ -120,18 +111,12 @@ while True:
 
             exit(1)
 
-
     poll_sleep = POLL_INTERVAL
 
     poll_edge_trigger = False
     if len(datapoints) > 0 and cur_temp - datapoints[-1].temp >= 3:
         poll_edge_trigger = True
     
-    print("Loop:")
-
-    print("  Cur ARM clock : ", vcgm.measure_clock("arm"))
-    print("  Cur Core clock: ", vcgm.measure_clock("core"))
-
     datapoints.append(PollData(temp=cur_temp, boosted=cur_boosted, historically_boosted_max_temp=0, poll_edge_trigger=poll_edge_trigger, set_pin=-1))
 
     data_history_lim = DATA_HISTORY
@@ -139,8 +124,6 @@ while True:
     if historical_poll_edge_trigger(datapoints):
         poll_sleep = 1
         data_history_lim = DATA_HISTORY * POLL_INTERVAL
-
-    print("  Permitted datapoints: ", data_history_lim)
 
     if len(datapoints) > data_history_lim:
         del datapoints[:int(-1 * data_history_lim)]
@@ -152,60 +135,40 @@ while True:
     if was_boosted:
         datapoints[-1].historically_boosted_max_temp = highest_historical_temp
 
-    print("  Cur temp: ", cur_temp)
-    print("  Cur boosted: ", cur_boosted)
-
-    print("  Datapoints size: ", len(datapoints))
-
-    print("  Highest historical temp: ", highest_historical_temp)
-    print("  Historically boosted: ", historically_boosted(datapoints))
-
-    print("  Raw history: ", datapoints)
-
     if highest_historical_temp < IDLE_TEMP_MAX:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != IDLE) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, IDLE)
             wiringpi.pwmWrite(EXHALE_PIN, IDLE)
             datapoints[-1].set_pin = IDLE
-            print("  Setting idle", "despite historical boost" if historically_boosted(datapoints) else "")
         else:
-            print("  Would have set idle, already idle, skipping")
             datapoints[-1].set_pin = IDLE
     elif highest_historical_temp < SILENT_TEMP_MAX:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != SILENT) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, SILENT)
             wiringpi.pwmWrite(EXHALE_PIN, SILENT)
             datapoints[-1].set_pin = SILENT
-            print("  Setting silent")
         else:
-            print("  Would have set silent, already silent, skipping")
             datapoints[-1].set_pin = SILENT
     elif highest_historical_temp < QUIET_TEMP_MAX:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != QUIET) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, QUIET)
             wiringpi.pwmWrite(EXHALE_PIN, QUIET)
             datapoints[-1].set_pin = QUIET
-            print("  Setting quiet")
         else:
-            print("  Would have set quiet, already quiet, skipping")
             datapoints[-1].set_pin = QUIET
     elif highest_historical_temp < MODERATE_TEMP_MAX:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != MODERATE) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, MODERATE)
             wiringpi.pwmWrite(EXHALE_PIN, MODERATE)
             datapoints[-1].set_pin = MODERATE
-            print("  Setting moderate")
         else:
-            print("  Would have set moderate, already moderate, skipping")
             datapoints[-1].set_pin = MODERATE
     else:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != TURBO) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, TURBO)
             wiringpi.pwmWrite(EXHALE_PIN, TURBO)
             datapoints[-1].set_pin = TURBO
-            print("  Setting turbo")
         else:
-            print("  Would have set turbo, already turbo, skipping")
             datapoints[-1].set_pin = TURBO
 
     time.sleep(poll_sleep)
