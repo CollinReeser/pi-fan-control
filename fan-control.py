@@ -7,16 +7,19 @@ sys.path.append("/home/pi/.local/lib/python3.7/site-packages")
 import wiringpi
 import vcgencmd
 
-IDLE = 0
-SILENT = 256
+# PWM fan speeds, 0-1024. Note that they must all
+#be different numbers.
+STOPPED = 0
+IDLE = 256
+SILENT = 384
 QUIET = 512
 MODERATE = 768
 TURBO = 1024
 
-IDLE_TEMP_MAX = 52
-SILENT_TEMP_MAX = 60
-QUIET_TEMP_MAX = 64
-MODERATE_TEMP_MAX = 67
+IDLE_TEMP_MAX = 45
+SILENT_TEMP_MAX = 50
+QUIET_TEMP_MAX = 55
+MODERATE_TEMP_MAX = 60
 
 INHALE_PIN = 12
 EXHALE_PIN = 13
@@ -26,11 +29,11 @@ wiringpi.pinMode(INHALE_PIN, wiringpi.PWM_OUTPUT)
 wiringpi.pinMode(EXHALE_PIN, wiringpi.PWM_OUTPUT)
 
 # How long to sleep for between polling of state.
-POLL_INTERVAL = 6
+POLL_INTERVAL = 4
 
 # The lowest (unboosted) clocks the Pi can be.
 BASE_ARM_CLOCK = 600
-UNINTERESTING_ARM_CEILING = 700
+UNINTERESTING_ARM_CEILING = 1200
 BASE_CORE_CLOCK = 200
 UNINTERESTING_CORE_CEILING = 250
 
@@ -49,8 +52,6 @@ class PollData:
     set_pin: int
 
 vcgm = vcgencmd.Vcgencmd()
-
-time.sleep(5)
 
 def is_boosted():
     arm_clock = vcgm.measure_clock("arm") / 1000000
@@ -138,7 +139,7 @@ while True:
     if highest_historical_temp < IDLE_TEMP_MAX:
         if (len(datapoints) > 1 and datapoints[-2].set_pin != IDLE) or len(datapoints) < 2:
             wiringpi.pwmWrite(INHALE_PIN, IDLE)
-            wiringpi.pwmWrite(EXHALE_PIN, IDLE)
+            wiringpi.pwmWrite(EXHALE_PIN, STOPPED)
             datapoints[-1].set_pin = IDLE
         else:
             datapoints[-1].set_pin = IDLE

@@ -1,0 +1,15 @@
+The script assumes two connected fans, using PWM pins as
+noted/configurable within the script.
+
+The script can be set to start on boot by adding it to
+`/etc/rc.local`:
+
+```
+/usr/bin/python3 <script-loc> &
+```
+
+Depends on:
+
+- https://github.com/WiringPi/WiringPi-Python
+- wiringpi.com
+- https://pypi.org/project/vcgencmd
